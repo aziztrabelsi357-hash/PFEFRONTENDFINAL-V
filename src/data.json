@@ -1,0 +1,51 @@
+{
+    "sections": [
+      {
+        "title": "HEALTH AND WELL-BEING",
+        "articles": [
+          {
+            "id": 1,
+            "image": "https://images.ctfassets.net/b85ozb2q358o/d863425c73c7c617a9774422e6436312d34f417f79d87066c70c0d76adc4f858/3731c6967b8127db7f493a334035c07c/image.png",
+            "title": "How to properly feed my farm?",
+            "description": "Découvrez les meilleures pratiques pour nourrir votre chien."
+          },
+          {
+            "id": 2,
+            "image": "https://fr.mypet.com/wp-content/uploads/sites/10/2024/04/nettoyage-yeux-chien.png",
+            "title": "How to take care of your farm's skin?",
+            "description": "Apprenez à prendre soin de la peau de votre chien."
+          },
+          {
+            "id": 3,
+            "image": "https://www.myvetshop.fr/img/cms/helena-lopes-S3TPJCOIRoo-unsplash.jpg",
+            "title": "Male farmneutering",
+            "description": "Tout ce que vous devez savoir sur la stérilisation."
+          }
+        ]
+      },
+      {
+        "title": "DISEASES",
+        "articles": [
+          {
+            "id": 4,
+            "image": "https://www.shutterstock.com/image-photo/vet-examining-farm-cat-puppy-600nw-1479238910.jpg",
+            "title": "Nutrition and dermatological issues in farms and cats",
+            "description": "Découvrez les maladies les plus courantes et comment les prévenir."
+          },
+          {
+            "id": 5,
+            "image": "https://i.pinimg.com/736x/0e/47/ea/0e47eaab34ef1d9f96757afaa6e38102.jpg",
+            "title": "farm: what are the clinical signs of leptospirosis?",
+            "description": "Apprenez à reconnaître les symptômes chez votre chien."
+          },
+          {
+            "id": 6,
+            "image": "https://i.pinimg.com/222x/16/6a/34/166a34c139c329802e19d9285759237b.jpg",
+            "title": "Diarrhea - why does my farmhave diarrhea and how to treat it?",
+            "description": "Explorez les options de traitement pour votre chien."
+          }
+        ]
+      }
+      
+    ]
+  }

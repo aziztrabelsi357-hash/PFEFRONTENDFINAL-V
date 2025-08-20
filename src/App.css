@@ -1,0 +1,112 @@
+/* Simple CSS Reset */
+
+/* Reset box-sizing to border-box */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: 'Lato', sans-serif;
+}
+
+/* Remove margin and padding */
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+ol,
+ul {
+  margin: 0;
+  padding: 0;
+}
+
+/* Remove list styles */
+ol,
+ul {
+  list-style: none;
+}
+
+/* Remove default hyperlink styles */
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Set default font family and size */
+body {
+  /* font-family: Arial, sans-serif; */
+  font-size: 16px;
+}
+
+/* Set default line height */
+body,
+p {
+  line-height: 1.5;
+}
+
+/* Remove outline on focused elements */
+:focus {
+  outline: none;
+}
+
+/* Add any additional styles or overrides as needed */
+
+
+.polygon-image-container {
+    aspect-ratio: 1;
+    clip-path: polygon(93.3% 75%,50% 100%,6.7% 75%,6.7% 25%,50% 0%,93.3% 25%);
+}
+
+@font-face {
+  font-family: 'Lato';
+  src: url('./assets/fonts/Lato-Regular.ttf') ;
+  /* Add more font formats if necessary */
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'LatoBlack';
+  src: url('./assets/fonts/Lato-Black.ttf');
+  /* Add more font formats if necessary */
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'LatoBold';
+  src: url('./assets/fonts/Lato-Bold.ttf');
+  /* Add more font formats if necessary */
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'LatoThin';
+  src: url('./assets/fonts/Lato-Thin.ttf');
+  /* Add more font formats if necessary */
+  font-weight: '300';
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'LatoLight';
+  src: url('./assets/fonts/Lato-Light.ttf');
+  /* Add more font formats if necessary */
+  font-weight: 'light';
+  font-style: normal;
+}
+
+p {
+  font-family: "LatoLight";
+}
+
+h1 {
+  font-family: "LatoBold";
+}

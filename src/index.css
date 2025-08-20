@@ -1,0 +1,5 @@
+/* Make sure your build process uses Tailwind CSS via PostCSS. 
+   These directives will only work if Tailwind is properly configured. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
