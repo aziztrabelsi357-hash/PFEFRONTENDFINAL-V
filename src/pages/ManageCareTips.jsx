@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { Link } from 'react-router-dom';
+import { notifyFarmChange } from '../utils/notify';
 
 const ManageCareTips = () => {
   const [careTips, setCareTips] = useState([]);
@@ -74,9 +75,10 @@ const ManageCareTips = () => {
             },
           }
         );
-        setCareTips(careTips.map((careTip) => (careTip.id === editingCareTip.id ? response.data : careTip)));
+  setCareTips(careTips.map((careTip) => (careTip.id === editingCareTip.id ? response.data : careTip)));
         setEditingCareTip(null);
         toast.success('Care tip updated successfully!');
+  try { notifyFarmChange(); } catch(e){}
       } else {
         const response = await axios.post(
           'http://localhost:8080/admin/care-tips',
@@ -90,9 +92,10 @@ const ManageCareTips = () => {
             },
           }
         );
-        setCareTips([...careTips, response.data]);
+  setCareTips([...careTips, response.data]);
         setNewCareTip({ title: '', description: '', article: { title: '', content: '' } });
         toast.success('Care tip added successfully!');
+  try { notifyFarmChange(); } catch(e){}
       }
     } catch (err) {
       console.error('Failed to save care tip:', err);
@@ -119,8 +122,9 @@ const ManageCareTips = () => {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      setCareTips(careTips.filter((careTip) => careTip.id !== id));
-      toast.success('Care tip deleted successfully!');
+  setCareTips(careTips.filter((careTip) => careTip.id !== id));
+  toast.success('Care tip deleted successfully!');
+  try { notifyFarmChange(); } catch(e){}
     } catch (err) {
       console.error('Failed to delete care tip:', err);
       toast.error('Failed to delete care tip');

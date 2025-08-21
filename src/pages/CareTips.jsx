@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+// no axios — use built-in care tips only
 import { FaSearch, FaPaw, FaHeart, FaRegHeart, FaFilter } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useBookmarks } from '../hooks/useBookmarks';
 import Skeleton from '../components/Skeleton';
+import DEFAULT_CARE_TIPS from '../data/careTips';
 
 export default function CareTips() {
   const [careTipItems, setCareTipItems] = useState([]);
@@ -28,22 +29,11 @@ export default function CareTips() {
   ];
 
   useEffect(() => {
-    const fetchCareTips = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await axios.get('http://localhost:8080/api/care-tips');
-        setCareTipItems(response.data);
-        setFilteredItems(response.data);
-      } catch (err) {
-        setError('Failed to load care tips. Please try again later.');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCareTips();
+    // Always use built-in scientific care tips (do not fetch from backend)
+    setLoading(false);
+    setError(null);
+  setCareTipItems(DEFAULT_CARE_TIPS);
+  setFilteredItems(DEFAULT_CARE_TIPS);
   }, []);
 
   useEffect(() => {

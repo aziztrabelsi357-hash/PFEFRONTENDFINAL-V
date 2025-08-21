@@ -182,6 +182,7 @@ export default function FeedingPage(){
           console.log('[Feeding] handleFeedRaw: farm missing animals array; fetching core data');
           await fetchCore();
         }
+  try { window.dispatchEvent(new Event('farmDataChanged')); } catch(e){}
       }
       return farm;
     }catch(e){ console.error('Feed failed', e); setAlert('Feeding failed'); return null; }
@@ -214,6 +215,7 @@ export default function FeedingPage(){
       }catch(e){ console.warn('Optimistic update failed', e); }
       // applyFarmData already ran inside handleFeedRaw for tanks; update totalIntake conservatively
       setTotalIntake(t=> t + amount);
+  try { window.dispatchEvent(new Event('farmDataChanged')); } catch(e){}
     }
   };
 
@@ -258,6 +260,7 @@ export default function FeedingPage(){
       const totalDistributed = Math.round(posts.reduce((s,p)=>s+p.amount,0)*10)/10;
       setTotalIntake(t=> t + totalDistributed);
       setAlert(`Distributed ${totalDistributed} L to ${posts.length} animals`);
+  try { window.dispatchEvent(new Event('farmDataChanged')); } catch(e){}
     }catch(e){ console.error('Feed all failed', e); setAlert('Feed all failed'); }
   };
 
@@ -286,6 +289,7 @@ export default function FeedingPage(){
       // refresh authoritative data
       await fetchCore();
       setAlert('Set animal to full (debug)');
+  try { window.dispatchEvent(new Event('farmDataChanged')); } catch(e){}
     }catch(e){ console.error('[Feeding] adminSetFullness failed', e); setAlert('Admin set-fullness failed'); }
   };
 

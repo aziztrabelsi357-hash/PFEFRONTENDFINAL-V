@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { Link } from 'react-router-dom';
+import { notifyFarmChange } from '../utils/notify';
 
 const ManageDiseases = () => {
   const [diseases, setDiseases] = useState([]);
@@ -79,9 +80,10 @@ const ManageDiseases = () => {
             },
           }
         );
-        setDiseases(diseases.map((disease) => (disease.id === editingDisease.id ? response.data : disease)));
+  setDiseases(diseases.map((disease) => (disease.id === editingDisease.id ? response.data : disease)));
         setEditingDisease(null);
         toast.success('Disease updated successfully!');
+  try { notifyFarmChange(); } catch(e){}
       } else {
         const response = await axios.post(
           'http://localhost:8080/admin/diseases',
@@ -97,9 +99,10 @@ const ManageDiseases = () => {
             },
           }
         );
-        setDiseases([...diseases, response.data]);
+  setDiseases([...diseases, response.data]);
         setNewDisease({ name: '', description: '', symptoms: '', treatments: '', article: { title: '', content: '' } });
         toast.success('Disease added successfully!');
+  try { notifyFarmChange(); } catch(e){}
       }
     } catch (err) {
       console.error('Failed to save disease:', err);
@@ -128,8 +131,9 @@ const ManageDiseases = () => {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      setDiseases(diseases.filter((disease) => disease.id !== id));
-      toast.success('Disease deleted successfully!');
+  setDiseases(diseases.filter((disease) => disease.id !== id));
+  toast.success('Disease deleted successfully!');
+  try { notifyFarmChange(); } catch(e){}
     } catch (err) {
       console.error('Failed to delete disease:', err);
       toast.error('Failed to delete disease');

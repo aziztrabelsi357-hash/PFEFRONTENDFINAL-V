@@ -6,6 +6,10 @@ import { PawPrint, Plus, Search, CalendarClock, Syringe, HeartPulse, Activity, E
 // Modern dashboard version (parity with PlantPage layout)
 const MyAnimals = () => {
   const [animals, setAnimals] = useState([]);
+  const [dogs, setDogs] = useState([]);
+  const [chickens, setChickens] = useState([]);
+  const [sheeps, setSheeps] = useState([]);
+  const [cows, setCows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [farmId, setFarmId] = useState(null);
@@ -40,6 +44,12 @@ const MyAnimals = () => {
 
   const baseAnimalsFallback = 'http://localhost:8080/api/animals'; // legacy
   const farmApiBase = 'http://localhost:8080/api/farms';
+
+  // Helper to resolve the correct animal endpoint for single-animal operations
+  const resolveAnimalUrl = (id) => {
+    if (farmId) return `${farmApiBase}/${farmId}/animals/${id}`;
+    return `${baseAnimalsFallback}/${id}`;
+  };
 
   const resolveUserAndFarm = async () => {
     const token = localStorage.getItem('token');
@@ -88,8 +98,28 @@ const MyAnimals = () => {
       if(!Array.isArray(data)) data = [];
       data = data.map(a => ({ healthStatus:'Unknown', ...a }));
       setAnimals(data);
+      distributeAnimals(data);
     } catch(e){ setError('Failed to load animals for farm'); }
     finally { setLoading(false); }
+  };
+
+  // Distribute animals into species arrays
+  const distributeAnimals = (list) => {
+    const d = [];
+    const c = [];
+    const s = [];
+    const co = [];
+    (list || []).forEach(a => {
+      const sp = (a.species||'').toLowerCase();
+      if (sp === 'dog') d.push(a);
+      else if (sp === 'chicken') c.push(a);
+      else if (sp === 'sheep' || sp === 'sheeps' || sp === 'sheep(s)') s.push(a);
+      else if (sp === 'cow') co.push(a);
+    });
+    setDogs(d);
+    setChickens(c);
+    setSheeps(s);
+    setCows(co);
   };
 
   useEffect(()=>{ resolveUserAndFarm(); }, []);
@@ -132,20 +162,94 @@ const MyAnimals = () => {
     if(posted){
       setShowAddModal(false);
       setNewForm({ name:'', imageUrl:'', species:'', breed:'', birthDate:'', sex:'', weight:'', healthStatus:'', feeding:'', activity:'', notes:'', vet:'', nextVisit:'', vaccinationDate:'' });
+      // refresh and optimistically add to species arrays
       fetchAnimals(farmId);
+      try {
+        const added = { ...payload };
+        // backend will assign id; we push optimistic entry without id
+        const sp = (added.species||'').toLowerCase();
+        if (sp === 'dog') setDogs(prev=>[...prev, added]);
+        else if (sp === 'chicken') setChickens(prev=>[...prev, added]);
+        else if (sp === 'sheep' || sp === 'sheeps') setSheeps(prev=>[...prev, added]);
+        else if (sp === 'cow') setCows(prev=>[...prev, added]);
+      } catch(_) {}
+  try { window.dispatchEvent(new Event('farmDataChanged')); } catch(e){}
     } else {
       setAddError(errorMsg || 'Add failed (both endpoints)');
     }
     setAddLoading(false);
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (objOrId) => {
+    const obj = typeof objOrId === 'object' ? objOrId : null;
+    const idCandidates = [];
+    if (obj) {
+      if (obj.id) idCandidates.push(obj.id);
+      if (obj._id && obj._id !== obj.id) idCandidates.push(obj._id);
+    } else if (objOrId) {
+      idCandidates.push(objOrId);
+    }
+    const uniqCandidates = Array.from(new Set(idCandidates));
+    if (uniqCandidates.length === 0) { alert('Impossible de supprimer: id invalide'); return; }
     if(!window.confirm('Supprimer cet animal ?')) return;
-    try { await axios.delete(`${baseUrl}/${id}`); if(selectedAnimal?.id===id) setSelectedAnimal(null); fetchAnimals(); } catch { alert('Delete failed'); }
+    const token = localStorage.getItem('token');
+    for (const candidate of uniqCandidates) {
+      // Try legacy/global endpoint first — many backends expose single-resource routes without farm prefix
+      try {
+        await axios.delete(`${baseAnimalsFallback}/${candidate}`, { headers: { Authorization: `Bearer ${token}` } });
+        if(selectedAnimal?.id===candidate || selectedAnimal?._id===candidate) setSelectedAnimal(null);
+        fetchAnimals(farmId);
+  try { window.dispatchEvent(new Event('farmDataChanged')); } catch(e){}
+        return;
+      } catch (legacyErr) {
+        console.warn('Animal delete legacy endpoint failed', candidate, legacyErr?.response?.status);
+        // then try farm-scoped
+        try {
+          await axios.delete(resolveAnimalUrl(candidate), { headers: { Authorization: `Bearer ${token}` } });
+          if(selectedAnimal?.id===candidate || selectedAnimal?._id===candidate) setSelectedAnimal(null);
+          fetchAnimals(farmId);
+          try { window.dispatchEvent(new Event('farmDataChanged')); } catch(e){}
+          return;
+        } catch (err) {
+          console.warn('Animal delete farm-scoped failed', candidate, err?.response?.status);
+          // if other error (401/403), surface it immediately
+          if (err?.response?.status && ![400,404].includes(err.response.status)) {
+            alert('Delete failed: ' + (err?.response?.data?.message || err?.message || 'Server error'));
+            return;
+          }
+          // otherwise continue to next candidate
+        }
+      }
+    }
+    alert('Delete failed for all tested identifiers. See console for details.');
   };
 
   const startEdit = (a) => { setEditingAnimal(a); setEditForm({ ...a }); };
-  const saveEdit = async (e) => { e.preventDefault(); try { await axios.put(`${baseUrl}/${editingAnimal.id}`, editForm); setEditingAnimal(null); fetchAnimals(); } catch { alert('Update failed'); } };
+  const saveEdit = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      // Try legacy/global endpoint first
+      try {
+        await axios.put(`${baseAnimalsFallback}/${editingAnimal.id}`, editForm, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } });
+        setEditingAnimal(null);
+        fetchAnimals(farmId);
+  try { window.dispatchEvent(new Event('farmDataChanged')); } catch(e){}
+        return;
+      } catch (legacyErr) {
+        console.warn('Animal update legacy endpoint failed', legacyErr?.response?.status);
+        // try farm-scoped
+        await axios.put(resolveAnimalUrl(editingAnimal.id), editForm, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } });
+        setEditingAnimal(null);
+        fetchAnimals(farmId);
+  try { window.dispatchEvent(new Event('farmDataChanged')); } catch(e){}
+        return;
+      }
+    } catch (err) {
+      console.error('Update animal failed', err);
+      alert('Update failed');
+    }
+  };
   const cancelEdit = () => { setEditingAnimal(null); setEditForm({}); };
 
   const addWeightEntry = (animalId) => {
@@ -167,7 +271,7 @@ const MyAnimals = () => {
     }).join(' ');
     return (
       <svg viewBox="0 0 100 100" className="w-full h-24 bg-gray-50 rounded border">
-        <polyline fill="none" stroke="#2563eb" strokeWidth="2" points={pts} />
+        <polyline fill="none" stroke="#16a34a" strokeWidth="2" points={pts} />
       </svg>
     );
   };
@@ -182,6 +286,7 @@ const MyAnimals = () => {
       await axios.post(`http://localhost:8080/api/medical-process/${selectedAnimal.id}/steps`, { type: newStepType, description: newStepDescription });
       setNewStepType(''); setNewStepDescription('');
       fetchMedicalProcesses(selectedAnimal.id);
+  try { window.dispatchEvent(new Event('farmDataChanged')); } catch(e){}
     } catch {/* ignore */}
   };
 
@@ -215,34 +320,160 @@ const MyAnimals = () => {
         {!farmLoading && !farmId && <p className="text-sm text-red-500 mb-4">{error || 'No farm associated. Create a farm first.'}</p>}
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center gap-4 mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex-1 flex items-center gap-2"><PawPrint size={30}/> Animal Management</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-white flex-1 flex items-center gap-2 bg-green-600 rounded-md px-4 py-3"><PawPrint size={30} className="text-white"/> Animal Management</h1>
           <div className="flex gap-3 items-center">
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
-              <input value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} placeholder="Search..." className="pl-8 pr-8 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-56"/>
+              <input value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} placeholder="Search..." className="pl-8 pr-8 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 w-56"/>
               {searchQuery && <button onClick={()=>setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">✕</button>}
             </div>
-            <button onClick={()=>setShowAddModal(true)} className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-md text-sm hover:bg-indigo-700"><Plus size={16}/> Add Animal</button>
+            <button onClick={()=>setShowAddModal(true)} className="flex items-center gap-2 bg-white text-green-600 border border-green-600 px-4 py-2 rounded-md text-sm hover:bg-green-50"><Plus size={16}/> Add Animal</button>
           </div>
         </div>
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white border rounded-lg p-4 flex flex-col gap-2"><div className="flex items-center gap-2 text-sm font-medium text-gray-600"><PawPrint size={16}/> Total</div><div className="text-2xl font-bold">{stats.total}</div></div>
-          <div className="bg-white border rounded-lg p-4 flex flex-col gap-2"><div className="flex items-center gap-2 text-sm font-medium text-gray-600"><CalendarClock size={16}/> Upcoming Visits</div><div className="text-2xl font-bold">{stats.upcomingVisits}</div><p className="text-[11px] text-gray-400">next 30 days</p></div>
-          <div className="bg-white border rounded-lg p-4 flex flex-col gap-2"><div className="flex items-center gap-2 text-sm font-medium text-gray-600"><Syringe size={16}/> Vaccination Due</div><div className="text-2xl font-bold">{stats.vaccinationAlerts}</div></div>
-          <div className="bg-white border rounded-lg p-4 flex flex-col gap-2"><div className="flex items-center gap-2 text-sm font-medium text-gray-600"><HeartPulse size={16}/> Healthy</div><div className="text-2xl font-bold">{stats.healthy}</div></div>
+          <div className="bg-white border border-green-100 rounded-lg p-4 flex flex-col gap-2"><div className="flex items-center gap-2 text-sm font-medium text-gray-600"><PawPrint size={16} className="text-green-600"/> Total</div><div className="text-2xl font-bold">{stats.total}</div></div>
+          <div className="bg-white border border-green-100 rounded-lg p-4 flex flex-col gap-2"><div className="flex items-center gap-2 text-sm font-medium text-gray-600"><CalendarClock size={16} className="text-green-600"/> Upcoming Visits</div><div className="text-2xl font-bold">{stats.upcomingVisits}</div><p className="text-[11px] text-gray-400">next 30 days</p></div>
+          <div className="bg-white border border-green-100 rounded-lg p-4 flex flex-col gap-2"><div className="flex items-center gap-2 text-sm font-medium text-gray-600"><Syringe size={16} className="text-green-600"/> Vaccination Due</div><div className="text-2xl font-bold">{stats.vaccinationAlerts}</div></div>
+          <div className="bg-white border border-green-100 rounded-lg p-4 flex flex-col gap-2"><div className="flex items-center gap-2 text-sm font-medium text-gray-600"><HeartPulse size={16} className="text-green-600"/> Healthy</div><div className="text-2xl font-bold">{stats.healthy}</div></div>
         </div>
         <div className="flex flex-col xl:flex-row gap-6">
           {/* Animal List */}
           <div className="flex-1">
             <h2 className="text-lg font-semibold text-gray-700 mb-4">Animal List</h2>
+            {/* Species tables */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="bg-white border border-green-100 rounded-lg p-4">
+                <h3 className="font-medium mb-3 text-gray-800">Dogs</h3>
+                <div className="overflow-x-auto">
+                <table className="w-full text-sm table-auto">
+                  <thead>
+                    <tr className="text-left text-xs text-green-600 border-b border-green-100">
+                      <th className="py-3">Name</th>
+                      <th className="py-3">Breed</th>
+                      <th className="py-3">Age</th>
+                      <th className="py-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dogs.map(d=>(
+                      <tr key={d.id||d._id || d.name} className="border-t border-green-100">
+                        <td className="py-4 font-medium text-gray-800">{d.name}</td>
+                        <td className="py-4 text-gray-500">{d.breed || '-'}</td>
+                        <td className="py-4 text-gray-500">{calcAge(d.birthDate) || '-'}</td>
+                        <td className="py-4 text-right">
+                          <button onClick={()=>setSelectedAnimal(d)} className="inline-flex items-center justify-center text-gray-600 hover:text-green-600 mx-1"><Eye size={18}/></button>
+                          <button onClick={()=>startEdit(d)} className="inline-flex items-center justify-center text-gray-600 hover:text-green-700 mx-1"><Edit2 size={18}/></button>
+                          <button onClick={()=>handleDelete(d)} className="inline-flex items-center justify-center text-gray-600 hover:text-red-600 mx-1"><Trash2 size={18}/></button>
+                        </td>
+                      </tr>
+                    ))}
+                    {dogs.length===0 && <tr><td colSpan={4} className="text-xs text-gray-400 py-4 text-center">No dogs.</td></tr>}
+                  </tbody>
+                </table>
+                </div>
+              </div>
+
+              <div className="bg-white border border-green-100 rounded-lg p-4">
+                <h3 className="font-medium mb-3 text-gray-800">Chickens</h3>
+                <div className="overflow-x-auto">
+                <table className="w-full text-sm table-auto">
+                  <thead>
+                    <tr className="text-left text-xs text-green-600 border-b border-green-100">
+                      <th className="py-3">Name</th>
+                      <th className="py-3">Breed</th>
+                      <th className="py-3">Age</th>
+                      <th className="py-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {chickens.map(c=>(
+                      <tr key={c.id||c._id||c.name} className="border-t border-green-100">
+                        <td className="py-4 font-medium text-gray-800">{c.name}</td>
+                        <td className="py-4 text-gray-500">{c.breed || '-'}</td>
+                        <td className="py-4 text-gray-500">{calcAge(c.birthDate) || '-'}</td>
+                        <td className="py-4 text-right">
+                          <button onClick={()=>setSelectedAnimal(c)} className="inline-flex items-center justify-center text-gray-600 hover:text-green-600 mx-1"><Eye size={18}/></button>
+                          <button onClick={()=>startEdit(c)} className="inline-flex items-center justify-center text-gray-600 hover:text-green-700 mx-1"><Edit2 size={18}/></button>
+                          <button onClick={()=>handleDelete(c)} className="inline-flex items-center justify-center text-gray-600 hover:text-red-600 mx-1"><Trash2 size={18}/></button>
+                        </td>
+                      </tr>
+                    ))}
+                    {chickens.length===0 && <tr><td colSpan={4} className="text-xs text-gray-400 py-4 text-center">No chickens.</td></tr>}
+                  </tbody>
+                </table>
+                </div>
+              </div>
+
+              <div className="bg-white border border-green-100 rounded-lg p-4">
+                <h3 className="font-medium mb-3 text-gray-800">Sheeps</h3>
+                <div className="overflow-x-auto">
+                <table className="w-full text-sm table-auto">
+                  <thead>
+                    <tr className="text-left text-xs text-green-600 border-b border-green-100">
+                      <th className="py-3">Name</th>
+                      <th className="py-3">Breed</th>
+                      <th className="py-3">Age</th>
+                      <th className="py-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sheeps.map(s=>(
+                      <tr key={s.id||s._id||s.name} className="border-t border-green-100">
+                        <td className="py-4 font-medium text-gray-800">{s.name}</td>
+                        <td className="py-4 text-gray-500">{s.breed || '-'}</td>
+                        <td className="py-4 text-gray-500">{calcAge(s.birthDate) || '-'}</td>
+                        <td className="py-4 text-right">
+                          <button onClick={()=>setSelectedAnimal(s)} className="inline-flex items-center justify-center text-gray-600 hover:text-green-600 mx-1"><Eye size={18}/></button>
+                          <button onClick={()=>startEdit(s)} className="inline-flex items-center justify-center text-gray-600 hover:text-green-700 mx-1"><Edit2 size={18}/></button>
+                          <button onClick={()=>handleDelete(s)} className="inline-flex items-center justify-center text-gray-600 hover:text-red-600 mx-1"><Trash2 size={18}/></button>
+                        </td>
+                      </tr>
+                    ))}
+                    {sheeps.length===0 && <tr><td colSpan={4} className="text-xs text-gray-400 py-4 text-center">No sheeps.</td></tr>}
+                  </tbody>
+                </table>
+                </div>
+              </div>
+
+              <div className="bg-white border border-green-100 rounded-lg p-4">
+                <h3 className="font-medium mb-3 text-gray-800">Cows</h3>
+                <div className="overflow-x-auto">
+                <table className="w-full text-sm table-auto">
+                  <thead>
+                    <tr className="text-left text-xs text-green-600 border-b border-green-100">
+                      <th className="py-3">Name</th>
+                      <th className="py-3">Breed</th>
+                      <th className="py-3">Age</th>
+                      <th className="py-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cows.map(co=>(
+                      <tr key={co.id||co._id||co.name} className="border-t border-green-100">
+                        <td className="py-4 font-medium text-gray-800">{co.name}</td>
+                        <td className="py-4 text-gray-500">{co.breed || '-'}</td>
+                        <td className="py-4 text-gray-500">{calcAge(co.birthDate) || '-'}</td>
+                        <td className="py-4 text-right">
+                          <button onClick={()=>setSelectedAnimal(co)} className="inline-flex items-center justify-center text-gray-600 hover:text-green-600 mx-1"><Eye size={18}/></button>
+                          <button onClick={()=>startEdit(co)} className="inline-flex items-center justify-center text-gray-600 hover:text-green-700 mx-1"><Edit2 size={18}/></button>
+                          <button onClick={()=>handleDelete(co)} className="inline-flex items-center justify-center text-gray-600 hover:text-red-600 mx-1"><Trash2 size={18}/></button>
+                        </td>
+                      </tr>
+                    ))}
+                    {cows.length===0 && <tr><td colSpan={4} className="text-xs text-gray-400 py-4 text-center">No cows.</td></tr>}
+                  </tbody>
+                </table>
+                </div>
+              </div>
+            </div>
             {loading ? (
               <div className="flex justify-center items-center h-40"><div className="animate-spin rounded-full h-10 w-10 border-t-4 border-indigo-500"/></div>
             ) : error ? (<p className="text-red-500 text-sm">{error}</p>) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {filteredAnimals.map((a,idx)=>(
-                  <motion.div key={a.id} initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay: idx*0.05}} className={`bg-white border rounded-xl overflow-hidden flex flex-col shadow-sm hover:shadow-md transition cursor-pointer ${selectedAnimal?.id===a.id?'ring-2 ring-indigo-500':''}`} onClick={()=>setSelectedAnimal(a)}>
-                    <div className="h-28 bg-gradient-to-br from-indigo-600 to-indigo-400 flex items-center justify-center text-white text-xl font-bold overflow-hidden">
+                  <motion.div key={a.id} initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay: idx*0.05}} className={`bg-white border rounded-xl overflow-hidden flex flex-col shadow-sm hover:shadow-md transition cursor-pointer ${selectedAnimal?.id===a.id?'ring-2 ring-green-600':''}`} onClick={()=>setSelectedAnimal(a)}>
+                    <div className="h-28 bg-gradient-to-br from-green-600 to-green-400 flex items-center justify-center text-white text-xl font-bold overflow-hidden">
                       {a.imageUrl ? <img src={a.imageUrl} alt={a.name} className="h-full w-full object-cover"/> : (a.name||'?').charAt(0)}
                     </div>
                     <div className="p-4 flex flex-col gap-3 flex-1">
@@ -257,10 +488,10 @@ const MyAnimals = () => {
                         {vaccinationDue(a.vaccinationDate) && <p className="text-red-500">Vaccination Due</p>}
                       </div>
                       <div className="mt-auto flex gap-2 pt-1 text-xs">
-                        <button className="flex-1 border rounded-md py-1 flex items-center justify-center gap-1 hover:bg-gray-50" onClick={(e)=>{e.stopPropagation();setSelectedAnimal(a);}}><Eye size={14}/> View</button>
-                        <button className="flex-1 border rounded-md py-1 flex items-center justify-center gap-1 hover:bg-gray-50" onClick={(e)=>{e.stopPropagation();startEdit(a);}}><Edit2 size={14}/> Edit</button>
+                        <button className="flex-1 border rounded-md py-1 flex items-center justify-center gap-1 hover:bg-gray-50 text-green-600" onClick={(e)=>{e.stopPropagation();setSelectedAnimal(a);}}><Eye size={14}/> View</button>
+                        <button className="flex-1 border rounded-md py-1 flex items-center justify-center gap-1 hover:bg-gray-50 text-green-700" onClick={(e)=>{e.stopPropagation();startEdit(a);}}><Edit2 size={14}/> Edit</button>
                       </div>
-                      <button className="mt-2 w-full border rounded-md py-1 text-xs flex items-center justify-center gap-1 text-red-600 hover:bg-red-50" onClick={(e)=>{e.stopPropagation();handleDelete(a.id);}}><Trash2 size={14}/> Delete</button>
+                      <button className="mt-2 w-full border rounded-md py-1 text-xs flex items-center justify-center gap-1 text-red-600 hover:bg-red-50" onClick={(e)=>{e.stopPropagation();handleDelete(a);}}><Trash2 size={14}/> Delete</button>
                     </div>
                   </motion.div>
                 ))}
@@ -274,7 +505,7 @@ const MyAnimals = () => {
               {selectedAnimal ? (
                 <div className="flex flex-col gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="h-14 w-14 rounded-lg bg-gradient-to-br from-indigo-600 to-indigo-400 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
+                      <div className="h-14 w-14 rounded-lg bg-gradient-to-br from-green-600 to-green-400 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
                       {selectedAnimal.imageUrl ? <img src={selectedAnimal.imageUrl} alt={selectedAnimal.name} className="h-full w-full object-cover"/> : (selectedAnimal.name||'?').charAt(0)}
                     </div>
                     <div>
@@ -287,10 +518,10 @@ const MyAnimals = () => {
                   <div>
                     <p className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1"><Activity size={14}/> Weight Trend</p>
                     {renderWeightChart(selectedAnimal.id)}
-                    <div className="flex gap-2 mt-2">
+                      <div className="flex gap-2 mt-2">
                       <input type="number" step="0.01" placeholder="kg" className="border rounded p-1 w-20 text-xs" value={weightInput} onChange={e=>setWeightInput(e.target.value)} />
                       <input type="date" className="border rounded p-1 text-xs" value={weightDateInput} onChange={e=>setWeightDateInput(e.target.value)} />
-                      <button type="button" className="bg-indigo-600 text-white px-2 rounded text-xs" onClick={()=>addWeightEntry(selectedAnimal.id)}>+</button>
+                      <button type="button" className="bg-green-600 text-white px-2 rounded text-xs" onClick={()=>addWeightEntry(selectedAnimal.id)}>+</button>
                     </div>
                   </div>
                   {/* Stored Fields */}
@@ -322,7 +553,7 @@ const MyAnimals = () => {
                         <option value="Suivi">Suivi</option>
                       </select>
                       <textarea required value={newStepDescription} onChange={e=>setNewStepDescription(e.target.value)} className="border rounded p-2 text-xs h-16" placeholder="Description"/>
-                      <button className="bg-indigo-600 text-white px-3 py-1 rounded text-xs hover:bg-indigo-700">Add Step</button>
+                      <button className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700">Add Step</button>
                     </form>
                   </div>
                 </div>
@@ -359,8 +590,8 @@ const MyAnimals = () => {
               <label className="text-xs font-medium md:col-span-2">Activity<textarea className="w-full border rounded-md p-2 mt-1 h-20" value={newForm.activity} onChange={e=>setNewForm(p=>({...p,activity:e.target.value}))}/></label>
               <label className="text-xs font-medium md:col-span-2">Notes<textarea className="w-full border rounded-md p-2 mt-1 h-24" value={newForm.notes} onChange={e=>setNewForm(p=>({...p,notes:e.target.value}))}/></label>
               <div className="md:col-span-2 flex gap-3 pt-2">
-                <button disabled={addLoading} className="bg-indigo-600 text-white px-5 py-2 rounded-md text-sm hover:bg-indigo-700 flex items-center gap-2"><Plus size={16}/>{addLoading?'Adding...':'Add'}</button>
-                <button type="button" onClick={()=>setShowAddModal(false)} className="bg-gray-200 text-gray-700 px-5 py-2 rounded-md text-sm hover:bg-gray-300">Cancel</button>
+                <button disabled={addLoading} className="bg-green-600 text-white px-5 py-2 rounded-md text-sm hover:bg-green-700 flex items-center gap-2"><Plus size={16}/>{addLoading?'Adding...':'Add'}</button>
+                <button type="button" onClick={()=>setShowAddModal(false)} className="bg-gray-100 text-gray-700 border border-green-200 px-5 py-2 rounded-md text-sm hover:bg-gray-50">Cancel</button>
                 {addError && <span className="text-red-500 text-xs self-center">{addError}</span>}
               </div>
             </form>
@@ -393,7 +624,7 @@ const MyAnimals = () => {
               <label className="text-xs font-medium">Activity<textarea className="w-full border rounded-lg p-2 mt-1 h-20" value={editForm.activity||''} onChange={e=>setEditForm(prev=>({...prev,activity:e.target.value}))}></textarea></label>
               <label className="text-xs font-medium">Notes<textarea className="w-full border rounded-lg p-2 mt-1 h-24" value={editForm.notes||''} onChange={e=>setEditForm(prev=>({...prev,notes:e.target.value}))}></textarea></label>
               <div className="flex gap-3 pt-2 sticky bottom-0 bg-white pb-2">
-                <button type="submit" className="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700">Sauvegarder</button>
+                <button type="submit" className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700">Sauvegarder</button>
                 <button type="button" onClick={cancelEdit} className="flex-1 bg-gray-400 text-white py-2 rounded-lg hover:bg-gray-500">Annuler</button>
               </div>
             </form>

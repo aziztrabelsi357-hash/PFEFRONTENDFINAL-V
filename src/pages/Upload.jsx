@@ -3,6 +3,7 @@ import axios from "axios";
 import { motion } from "framer-motion";
 import image from "../assets/images/Flux_Dev_A_futuristic_and_modern_veterinary_AI_analysis_backgr_2.jpeg";
 import { toast } from 'react-toastify';
+import { notifyFarmChange } from '../utils/notify';
 
 const Upload = () => {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -71,6 +72,7 @@ const Upload = () => {
       console.log("Spring Boot Response:", springBootResponse.data);
 
       setResult(detectionResult);
+  try { notifyFarmChange(); } catch(e){}
       toast.success(detectionResult.message || "Image analyzed and saved successfully!");
       
     } catch (error) {

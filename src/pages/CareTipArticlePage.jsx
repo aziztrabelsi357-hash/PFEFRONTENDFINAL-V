@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import DEFAULT_CARE_TIPS from '../data/careTips';
 import { FaArrowLeft, FaShareAlt, FaHeart, FaRegHeart, FaPaw } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -17,21 +17,23 @@ export default function CareTipArticlePage() {
   const { bookmarks, toggleBookmark } = useBookmarks();
 
   useEffect(() => {
-    const fetchCareTip = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await axios.get(`http://localhost:8080/api/care-tips/${id}`);
-        setCareTip(response.data);
-      } catch (err) {
-        setError('Failed to load the care tip. Please try again later.');
-        console.error(err);
-      } finally {
-        setLoading(false);
+    // Load care tip from local built-in data to avoid backend dependency
+    setLoading(true);
+    setError(null);
+    try {
+      const found = DEFAULT_CARE_TIPS.find(t => t.id === id);
+      if (found) {
+        setCareTip(found);
+      } else {
+        setCareTip(null);
+        setError(null); // handled by UI when careTip is null
       }
-    };
-
-    fetchCareTip();
+    } catch (err) {
+      console.error(err);
+      setError('Failed to load the care tip.');
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
   const handleShare = async () => {

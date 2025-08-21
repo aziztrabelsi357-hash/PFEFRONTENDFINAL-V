@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { notifyFarmChange } from '../utils/notify';
 import axios from 'axios';
 import { motion } from 'framer-motion';
 import { Leaf, Plus, X, Edit2, Trash2, Search, CalendarClock, Flower2, Beaker, Eye, Activity, Droplets, HeartPulse, Image as ImageIcon, Syringe } from 'lucide-react';
@@ -39,6 +40,11 @@ const MyPlantes = () => {
 
   const baseUrlLegacy = 'http://localhost:8080/api/plants'; // legacy (all plants)
   const farmApiBase = 'http://localhost:8080/api/farms';
+
+  const resolvePlantUrl = (id) => {
+    if (farmId) return `${farmApiBase}/${farmId}/plants/${id}`;
+    return `${baseUrlLegacy}/${id}`;
+  };
 
   const resolveUserAndFarm = async () => {
     const token = localStorage.getItem('token');
@@ -108,28 +114,86 @@ const MyPlantes = () => {
         farmId
       };
     try {
-      await axios.post(`${farmApiBase}/${farmId}/plants`, payload, { headers: { Authorization: `Bearer ${token}` }});
+  await axios.post(`${farmApiBase}/${farmId}/plants`, payload, { headers: { Authorization: `Bearer ${token}` }});
       setNewName(''); setNewImageUrl(''); setNewType(''); setNewPlantingDate(''); setNewExpectedHarvestDate(''); setNewQuantityOrArea(''); setNewHealthStatus(''); setNewNotes(''); setNewNextTreatment(''); setNewFertilizer(''); setNewIrrigation(''); setNewDiseaseHistory('');
       fetchPlants(farmId);
       setShowAddModal(false);
+  try { notifyFarmChange(); } catch(e){}
     } catch(e){
       setAddError('Ajout échoué (endpoint farm indisponible)');
     }
     setAddLoading(false);
   };
 
-  const handleDeletePlant = async (id) => {
+  const handleDeletePlant = async (objOrId) => {
+    // Accept either the plant object or an id string
+    const plantObj = typeof objOrId === 'object' ? objOrId : null;
+    const idCandidates = [];
+    if (plantObj) {
+      if (plantObj.id) idCandidates.push(plantObj.id);
+      if (plantObj._id && plantObj._id !== plantObj.id) idCandidates.push(plantObj._id);
+    } else if (objOrId) {
+      idCandidates.push(objOrId);
+    }
+    // ensure unique
+    const uniqCandidates = Array.from(new Set(idCandidates));
+    if (uniqCandidates.length === 0) {
+      alert('Impossible de supprimer: id invalide');
+      return;
+    }
     if(!window.confirm('Supprimer cette plante ?')) return;
-    try { await axios.delete(`${baseUrl}/${id}`); fetchPlants(); } catch { alert('Suppression échouée'); }
+    const token = localStorage.getItem('token');
+    // Try each candidate id with legacy first then farm-scoped
+    for (const candidate of uniqCandidates) {
+      try {
+  await axios.delete(`${baseUrlLegacy}/${candidate}`, { headers: { Authorization: `Bearer ${token}` } });
+  fetchPlants(farmId);
+  try { notifyFarmChange(); } catch(e){}
+        return;
+      } catch (legacyErr) {
+        console.warn('Plant delete legacy endpoint failed', candidate, legacyErr?.response?.status);
+        try {
+          await axios.delete(resolvePlantUrl(candidate), { headers: { Authorization: `Bearer ${token}` } });
+          fetchPlants(farmId);
+          try { notifyFarmChange(); } catch(e){}
+          return;
+        } catch (err) {
+          console.warn('Plant delete farm-scoped failed', candidate, err?.response?.status);
+          if (err?.response?.status && ![400,404].includes(err.response.status)) {
+            alert('Suppression échouée: ' + (err?.response?.data?.message || err?.message || 'Server error'));
+            return;
+          }
+        }
+      }
+    }
+    alert('Suppression échouée pour tous les identifiants testés. Vérifiez le journal (console) pour plus de détails.');
   };
 
   const startEdit = (plant) => { setEditingPlant(plant); setEditForm({ ...plant }); };
   const saveEdit = async (e) => {
     e.preventDefault();
     try {
-  await axios.put(`${baseUrl}/${editingPlant.id}`, editForm);
-      setEditingPlant(null); fetchPlants();
-    } catch { alert('Mise à jour échouée'); }
+      const token = localStorage.getItem('token');
+      // Try legacy endpoint first
+      try {
+  await axios.put(`${baseUrlLegacy}/${editingPlant.id}`, editForm, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } });
+  setEditingPlant(null);
+  fetchPlants(farmId);
+  try { notifyFarmChange(); } catch(e){}
+        return;
+      } catch (legacyErr) {
+        console.warn('Plant update legacy failed', legacyErr?.response?.status);
+        // try farm-scoped
+  await axios.put(resolvePlantUrl(editingPlant.id), editForm, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } });
+  setEditingPlant(null);
+  fetchPlants(farmId);
+  try { notifyFarmChange(); } catch(e){}
+        return;
+      }
+    } catch (err) {
+      console.error('Update plant failed', err);
+      alert('Mise à jour échouée');
+    }
   };
   const cancelEdit = () => { setEditingPlant(null); setEditForm({}); };
 
@@ -243,7 +307,7 @@ const MyPlantes = () => {
                           <button className="flex-1 border rounded-md py-1 flex items-center justify-center gap-1 hover:bg-gray-50" onClick={(e)=>{e.stopPropagation();setSelectedPlant(p);}}><Eye size={14}/> View</button>
                           <button className="flex-1 border rounded-md py-1 flex items-center justify-center gap-1 hover:bg-gray-50" onClick={(e)=>{e.stopPropagation();startEdit(p);}}><Edit2 size={14}/> Edit</button>
                         </div>
-                        <button className="mt-2 w-full border rounded-md py-1 text-xs flex items-center justify-center gap-1 text-red-600 hover:bg-red-50" onClick={(e)=>{e.stopPropagation();handleDeletePlant(p.id);}}><Trash2 size={14}/> Delete</button>
+                        <button className="mt-2 w-full border rounded-md py-1 text-xs flex items-center justify-center gap-1 text-red-600 hover:bg-red-50" onClick={(e)=>{e.stopPropagation();handleDeletePlant(p);}}><Trash2 size={14}/> Delete</button>
                       </div>
                     </motion.div>
                   );

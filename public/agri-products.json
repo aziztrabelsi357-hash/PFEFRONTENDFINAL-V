@@ -1,0 +1,56 @@
+[
+  {
+    "id": "chicken-feed-20kg",
+    "name": "Chicken Feed (20kg Bag)",
+    "category": "Feed",
+    "price": 24.5,
+    "unit": "20kg",
+    "description": "Complete layer feed for optimal egg production. High protein, fortified with vitamins and minerals.",
+    "stock": 42
+  },
+  {
+    "id": "cow-mineral-block",
+    "name": "Cow Mineral Block",
+    "category": "Supplements",
+    "price": 18.0,
+    "unit": "block",
+    "description": "Slow-release mineral block to support cattle health and rumen function.",
+    "stock": 15
+  },
+  {
+    "id": "sheep-hay-bale-50kg",
+    "name": "Sheep Hay Bale (50kg)",
+    "category": "Bedding",
+    "price": 14.75,
+    "unit": "50kg",
+    "description": "Premium meadow hay, baled and dried to retain nutrients. Ideal for sheep and small ruminants.",
+    "stock": 60
+  },
+  {
+    "id": "calf-starter-pellet-10kg",
+    "name": "Calf Starter Pellet (10kg)",
+    "category": "Feed",
+    "price": 21.0,
+    "unit": "10kg",
+    "description": "Highly digestible starter pellets to promote early growth in calves.",
+    "stock": 24
+  },
+  {
+    "id": "goat-mineral-mix",
+    "name": "Goat Mineral Mix (10kg)",
+    "category": "Supplements",
+    "price": 19.9,
+    "unit": "10kg",
+    "description": "Balanced mineral mix formulated for goats. Supports lactation and overall health.",
+    "stock": 12
+  },
+  {
+    "id": "barn-bedding-straw",
+    "name": "Barn Bedding Straw Bale",
+    "category": "Bedding",
+    "price": 8.5,
+    "unit": "bale",
+    "description": "Clean, dry straw bales for bedding and insulation in barns and coops.",
+    "stock": 120
+  }
+]

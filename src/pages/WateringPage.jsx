@@ -81,6 +81,8 @@ export default function WateringPage(){
           console.log(`[Moisture Update] Posting to: ${farmApiBase}/${farmId}/plants/${p.id}/water?liters=0`, {soilMoisture: moisture});
           const resp = await axios.post(`${farmApiBase}/${farmId}/plants/${p.id}/water?liters=0`, {soilMoisture: moisture}, {headers:{Authorization:`Bearer ${token}`}});
           console.log('[Moisture Update] POST success:', resp.status, resp.data);
+          // notify dashboard and other listeners
+          try { window.dispatchEvent(new Event('farmDataChanged')); } catch(e){}
         } catch (err) {
           console.error('[Moisture Update] POST failed:', err?.response?.status, err?.response?.data, err);
         }
@@ -221,6 +223,7 @@ export default function WateringPage(){
       const r = await axios.post(`${farmApiBase}/${farmId}/tank/refill?amount=${amount}`,null,{headers:{Authorization:`Bearer ${token}`}});
       if(r.data?.level!=null) setTankLevel(r.data.level);
       setLowTank(false);
+  try { window.dispatchEvent(new Event('farmDataChanged')); } catch(e){}
     }catch(e){ setError('Refill failed'); }
   };
 
@@ -242,6 +245,7 @@ export default function WateringPage(){
       // Decrease tank locally (if backend already did, we fetched will be updated later; approximate now)
       setTankLevel(l=> l!=null? Math.max(0, l - liters): l);
       setTotalWaterUsed(u=> u + liters);
+  try { window.dispatchEvent(new Event('farmDataChanged')); } catch(e){}
     }catch(e){ setError('Watering failed'); }
   };
 
@@ -271,6 +275,7 @@ export default function WateringPage(){
     setPlants(prev=> prev.map(pl=> ({...pl, soilMoisture: Math.min(100,(pl.soilMoisture||50)+15), lastWatered:new Date().toISOString()})));
     setTankLevel(l=> l!=null? Math.max(0,l-usable): l);
     setTotalWaterUsed(u=> u + usable);
+  try { window.dispatchEvent(new Event('farmDataChanged')); } catch(e){}
   };
 
   function refresh(){ setRefreshing(true); setTimeout(()=>{ setRefreshing(false); },400); }

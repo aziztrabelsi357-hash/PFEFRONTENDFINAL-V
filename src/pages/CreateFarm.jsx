@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import imageLogin from '../assets/images/farm1.jpg';
+import { notifyFarmChange } from '../utils/notify';
 
 const API_BASE = 'http://localhost:8080';
 
@@ -103,6 +104,7 @@ const CreateFarm = ({ setIsLoggedIn }) => {
       } catch(fetchErr){ /* ignore */ }
 
       setSuccess('Farm created successfully! Redirecting to your farm...');
+  try { notifyFarmChange(); } catch(e){}
       setTimeout(() => navigate('/farm'), 1200);
     } catch (err) {
       console.error('Create farm error:', err.response?.data || err.message);

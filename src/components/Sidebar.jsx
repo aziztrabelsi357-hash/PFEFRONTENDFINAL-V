@@ -10,13 +10,13 @@ import { toast } from 'react-toastify';
 
 const menuItems = [
   { icon: <MdOutlinePets size={30} />, label: 'Dashboard', path: '/dashboard' },
-  { icon: <FaDrumstickBite size={28} className="text-orange-500" />, label: 'Feeding', path: '/feeding' },
   {
     icon: <MdOutlinePets size={30} />, label: 'MyFarm',
     submenu: [
       { icon: <FaDog size={24} />, label: 'My Animals', path: '/my-animals' },
       { icon: <MdOutlineLocalFlorist size={24} />, label: 'My Plants', path: '/my-plants' },
       { icon: <MdOutlineWaterDrop size={24} />, label: 'Watering', path: '/watering' },
+      { icon: <FaDrumstickBite size={24} className="text-green-600" />, label: 'Feeding', path: '/feeding' }
     ]
   },
   { icon: <FaProductHunt size={30} />, label: 'Products', path: '/products' },
