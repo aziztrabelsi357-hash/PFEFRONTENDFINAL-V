@@ -30,6 +30,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import ManageDiseases from './pages/ManageDiseases';
 import ManageCareTips from './pages/ManageCareTips';
 import ManageProducts from './pages/ManageProducts';
+import Notifications from './pages/Notifications';
 import axios from 'axios';
 import CreateFarm from './pages/CreateFarm';
 
@@ -119,6 +120,10 @@ function AppLayout({ isLoggedIn, userDetails, isAdmin, setIsLoggedIn, fetchUserD
             <Route
               path="/history"
               element={isLoggedIn ? <History /> : <Login setIsLoggedIn={setIsLoggedIn} fetchUserDetails={fetchUserDetails} />}
+            />
+            <Route
+              path="/notifications"
+              element={isLoggedIn ? <Notifications /> : <Login setIsLoggedIn={setIsLoggedIn} fetchUserDetails={fetchUserDetails} />}
             />
             <Route
               path="/admin"
