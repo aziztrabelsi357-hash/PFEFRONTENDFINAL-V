@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import AIChatbot from '../components/AIChatbot';
 import farm1jpg from '../assets/images/farm1.jpg';
 import farm1png from '../assets/images/farm1.png';
 import farm3jpeg from '../assets/images/farm3.jpeg';
@@ -81,6 +82,7 @@ function resolveImage({ name='', category='', id='' } = {}){
 export default function Products(){
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [chatbotOpen, setChatbotOpen] = useState(false);
 
   // Agridata endpoints (user-provided list). We'll try these first.
   const AGRI_BASE = 'https://agridata.ec.europa.eu';
@@ -248,6 +250,24 @@ export default function Products(){
           ))}
         </div>
       </div>
+
+      {/* AI Chatbot */}
+      <AIChatbot 
+        isOpen={chatbotOpen} 
+        onToggle={() => setChatbotOpen(!chatbotOpen)}
+        context="products_management"
+        pageData={{
+          products: products,
+          totalProducts: products.length,
+          categories: [...new Set(products.map(p => p.category))],
+          priceRange: {
+            min: Math.min(...products.map(p => p.price || 0).filter(p => p > 0)),
+            max: Math.max(...products.map(p => p.price || 0))
+          },
+          availableCategories: ['Feed', 'Supplements', 'Equipment', 'Bedding', 'Health'],
+          loading: loading
+        }}
+      />
     </div>
   );
 }

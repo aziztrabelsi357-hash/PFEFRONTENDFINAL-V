@@ -3,6 +3,7 @@ import { notifyFarmChange } from '../utils/notify';
 import axios from 'axios';
 import { motion } from 'framer-motion';
 import { Leaf, Plus, X, Edit2, Trash2, Search, CalendarClock, Flower2, Beaker, Eye, Activity, Droplets, HeartPulse, Image as ImageIcon, Syringe } from 'lucide-react';
+import AIChatbot from '../components/AIChatbot';
 
 const MyPlantes = () => {
   const [plants, setPlants] = useState([]);
@@ -10,6 +11,7 @@ const MyPlantes = () => {
   const [error, setError] = useState(null);
   const [farmId, setFarmId] = useState(null);
   const [farmLoading, setFarmLoading] = useState(true);
+  const [chatbotOpen, setChatbotOpen] = useState(false);
 
   // Formulaire ajout (all backend fields)
   const [newName, setNewName] = useState('');
@@ -421,6 +423,29 @@ const MyPlantes = () => {
           </div>
         </div>
       )}
+
+      {/* AI Chatbot */}
+      <AIChatbot 
+        isOpen={chatbotOpen} 
+        onToggle={() => setChatbotOpen(!chatbotOpen)}
+        context="plant_management"
+        pageData={{
+          plants: plants,
+          totalCount: plants.length,
+          breakdown: plants.reduce((acc, plant) => {
+            const type = plant.type || 'Unknown';
+            acc[type] = (acc[type] || 0) + 1;
+            return acc;
+          }, {}),
+          healthStats: {
+            healthy: plants.filter(p => p.healthStatus === 'Healthy').length,
+            warning: plants.filter(p => p.healthStatus === 'Warning').length,
+            sick: plants.filter(p => p.healthStatus === 'Sick').length
+          },
+          upcomingHarvests: plants.filter(p => p.expectedHarvestDate).length,
+          farmId: farmId
+        }}
+      />
     </div>
   );
 };

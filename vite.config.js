@@ -7,4 +7,12 @@ export default defineConfig({
   server: {
     port: 5174,
   },
+  optimizeDeps: {
+    include: ['plotly.js-dist-min']
+  },
+  build: {
+    commonjsOptions: {
+      include: [/plotly/, /node_modules/]
+    }
+  }
 })

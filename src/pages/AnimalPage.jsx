@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
-import { PawPrint, Plus, Search, CalendarClock, Syringe, HeartPulse, Activity, Edit2, Trash2, Eye, X, Stethoscope } from 'lucide-react';
+import { Bone, Plus, Search, CalendarClock, Syringe, HeartPulse, Activity, Edit2, Trash2, Eye, X, Stethoscope } from 'lucide-react';
+import AIChatbot from '../components/AIChatbot';
 
 // Modern dashboard version (parity with PlantPage layout)
 const MyAnimals = () => {
@@ -14,6 +15,7 @@ const MyAnimals = () => {
   const [error, setError] = useState(null);
   const [farmId, setFarmId] = useState(null);
   const [farmLoading, setFarmLoading] = useState(true);
+  const [chatbotOpen, setChatbotOpen] = useState(false);
 
   // Add form state
   const [showAddModal, setShowAddModal] = useState(false);
@@ -320,7 +322,7 @@ const MyAnimals = () => {
         {!farmLoading && !farmId && <p className="text-sm text-red-500 mb-4">{error || 'No farm associated. Create a farm first.'}</p>}
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center gap-4 mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-white flex-1 flex items-center gap-2 bg-green-600 rounded-md px-4 py-3"><PawPrint size={30} className="text-white"/> Animal Management</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-white flex-1 flex items-center gap-2 bg-green-600 rounded-md px-4 py-3"><Bone size={30} className="text-white"/> Animal Management</h1>
           <div className="flex gap-3 items-center">
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
@@ -332,7 +334,7 @@ const MyAnimals = () => {
         </div>
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white border border-green-100 rounded-lg p-4 flex flex-col gap-2"><div className="flex items-center gap-2 text-sm font-medium text-gray-600"><PawPrint size={16} className="text-green-600"/> Total</div><div className="text-2xl font-bold">{stats.total}</div></div>
+          <div className="bg-white border border-green-100 rounded-lg p-4 flex flex-col gap-2"><div className="flex items-center gap-2 text-sm font-medium text-gray-600"><Bone size={16} className="text-green-600"/> Total</div><div className="text-2xl font-bold">{stats.total}</div></div>
           <div className="bg-white border border-green-100 rounded-lg p-4 flex flex-col gap-2"><div className="flex items-center gap-2 text-sm font-medium text-gray-600"><CalendarClock size={16} className="text-green-600"/> Upcoming Visits</div><div className="text-2xl font-bold">{stats.upcomingVisits}</div><p className="text-[11px] text-gray-400">next 30 days</p></div>
           <div className="bg-white border border-green-100 rounded-lg p-4 flex flex-col gap-2"><div className="flex items-center gap-2 text-sm font-medium text-gray-600"><Syringe size={16} className="text-green-600"/> Vaccination Due</div><div className="text-2xl font-bold">{stats.vaccinationAlerts}</div></div>
           <div className="bg-white border border-green-100 rounded-lg p-4 flex flex-col gap-2"><div className="flex items-center gap-2 text-sm font-medium text-gray-600"><HeartPulse size={16} className="text-green-600"/> Healthy</div><div className="text-2xl font-bold">{stats.healthy}</div></div>
@@ -631,6 +633,29 @@ const MyAnimals = () => {
           </div>
         </div>
       )}
+
+      {/* AI Chatbot */}
+      <AIChatbot 
+        isOpen={chatbotOpen} 
+        onToggle={() => setChatbotOpen(!chatbotOpen)}
+        context="animal_management"
+        pageData={{
+          animals: animals,
+          totalCount: animals.length,
+          breakdown: {
+            dogs: dogs.length,
+            chickens: chickens.length,
+            sheep: sheeps.length,
+            cows: cows.length
+          },
+          healthStats: {
+            healthy: animals.filter(a => a.healthStatus === 'Healthy').length,
+            warning: animals.filter(a => a.healthStatus === 'Warning').length,
+            sick: animals.filter(a => a.healthStatus === 'Sick').length
+          },
+          farmId: farmId
+        }}
+      />
     </div>
   );
 };

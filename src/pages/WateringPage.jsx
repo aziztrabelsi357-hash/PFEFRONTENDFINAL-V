@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { FaTint, FaClock, FaExclamationTriangle, FaLeaf, FaWater, FaCloudRain, FaSync } from 'react-icons/fa';
+import AIChatbot from '../components/AIChatbot';
 // Calendar removed per request
 
 const farmApiBase = 'http://localhost:8080/api/farms';
@@ -31,6 +32,10 @@ export default function WateringPage(){
   const [alert,setAlert]=useState(null); const [refreshing,setRefreshing]=useState(false);
   const [geo,setGeo]=useState({lat:null,lon:null,denied:false});
   const [nextEvent,setNextEvent]=useState(null);
+  const [chatbotOpen, setChatbotOpen] = useState(false);
+
+  // Reference to track auto-marking (similar to FeedingPage)
+  const didMarkThisSession = useRef(false);
 
   // Static routine times
   const WATERING_TIMES=['06:30','12:30','18:30'];
@@ -191,6 +196,36 @@ export default function WateringPage(){
       console.log('[Schedule Build]', {today:todayStr, plants:pl.map(p=>({n:p.name,harvest:p.expectedHarvestDate,treat:p.nextTreatment})), todayEndpoint: todayList.map(p=>({n:p.name,harvest:p.expectedHarvestDate,treat:p.nextTreatment})), final:events});
       events.sort((a,b)=> a.time.localeCompare(b.time));
       setSchedule(events);
+      
+      // Auto-mark past watering events as done (same logic as FeedingPage)
+      setTimeout(() => {
+        if (didMarkThisSession.current) return;
+        
+        const now = new Date();
+        const pastWatering = events
+          .filter(ev => ev.type === 'watering')
+          .map(ev => ({ ev, datetime: new Date(isoFromTime(ev.time)) }))
+          .filter(({ datetime }) => datetime <= now)
+          .sort((a, b) => b.datetime - a.datetime)[0]; // latest past watering
+        
+        if (pastWatering) {
+          // Check if already marked done
+          const alreadyMarked = events.some(ev => 
+            ev.type === 'watering' && ev.time === pastWatering.ev.time && ev.done
+          );
+          
+          if (!alreadyMarked) {
+            setSchedule(prev => prev.map(ev => {
+              if (ev.type === 'watering' && ev.time === pastWatering.ev.time) {
+                return { ...ev, done: true, doneAt: new Date().toISOString() };
+              }
+              return ev;
+            }));
+            didMarkThisSession.current = true;
+          }
+        }
+      }, 1000);
+      
       // Next watering
       const now=new Date();
       const nextW = WATERING_TIMES.map(t=>isoFromTime(t)).find(iso=> new Date(iso)> now) || isoFromTime(WATERING_TIMES[0]);
@@ -318,14 +353,22 @@ export default function WateringPage(){
         <div className='xl:col-span-5 bg-white rounded-xl shadow p-5 flex flex-col'>
           <SectionHeader title='Today Schedule' icon={<FaClock className='text-blue-500'/>} />
           <ul className='flex-1 divide-y text-sm'>
-            {schedule.length? schedule.map((s,i)=>(
-              <li key={i} className='py-3 flex items-center justify-between'>
-                <div className='flex flex-col'>
-                  <span className='font-medium'>{s.time} • {s.label}</span>
-                  <span className='text-[10px] uppercase tracking-wide text-gray-400'>{s.type}</span>
-                </div>
-              </li>
-            )): <li className='py-6 text-center text-gray-400'>No events</li>}
+            {schedule.length? schedule.map((s,i)=>{
+              const isDone = !!s.done;
+              return (
+                <li key={i} className='py-3 flex items-center justify-between'>
+                  <div className='flex flex-col'>
+                    <div className='flex items-center'>
+                      <span className='font-medium'>{s.time} • {s.label}</span>
+                      {isDone && <span className='ml-3 text-xs text-green-600 font-semibold'>✓ Done</span>}
+                    </div>
+                    <span className='text-[10px] uppercase tracking-wide text-gray-400'>
+                      {s.type}{isDone && s.doneAt ? ` • ${new Date(s.doneAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}` : ''}
+                    </span>
+                  </div>
+                </li>
+              );
+            }): <li className='py-6 text-center text-gray-400'>No events</li>}
           </ul>
         </div>
   <div className='xl:col-span-4 bg-white rounded-xl shadow p-5 flex flex-col'>
@@ -388,6 +431,31 @@ export default function WateringPage(){
           </div>
         </div>
       </div>
+
+      {/* AI Chatbot */}
+      <AIChatbot 
+        isOpen={chatbotOpen} 
+        onToggle={() => setChatbotOpen(!chatbotOpen)}
+        context="watering_management"
+        pageData={{
+          plants: plants,
+          totalPlants: plants.length,
+          moistureStats: {
+            dry: plants.filter(p => (p.soilMoisture || 0) < 40).length,
+            moderate: plants.filter(p => (p.soilMoisture || 0) >= 40 && (p.soilMoisture || 0) < 60).length,
+            moist: plants.filter(p => (p.soilMoisture || 0) >= 60).length
+          },
+          wateringSchedule: schedule,
+          nextWatering: nextWatering,
+          tankLevel: tankLevel,
+          lowTank: lowTank,
+          totalWaterUsed: totalWaterUsed,
+          rainForecast: rainForecast,
+          aiSuggestion: aiSuggestion,
+          nextEvent: nextEvent,
+          farmId: farmId
+        }}
+      />
     </div>
   );
 }

@@ -105,7 +105,7 @@ const CreateFarm = ({ setIsLoggedIn }) => {
 
       setSuccess('Farm created successfully! Redirecting to your farm...');
   try { notifyFarmChange(); } catch(e){}
-      setTimeout(() => navigate('/farm'), 1200);
+      setTimeout(() => navigate('/dashboard'), 1200);
     } catch (err) {
       console.error('Create farm error:', err.response?.data || err.message);
       const data = err.response?.data;

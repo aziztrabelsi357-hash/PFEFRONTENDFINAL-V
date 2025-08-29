@@ -110,3 +110,37 @@ p {
 h1 {
   font-family: "LatoBold";
 }
+
+/* Green slider styling for AI detection pages */
+.slider-thumb-green::-webkit-slider-thumb {
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #16a34a;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.slider-thumb-green::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #16a34a;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.slider-thumb-green::-webkit-slider-track {
+  background: #bbf7d0;
+  height: 8px;
+  border-radius: 4px;
+}
+
+.slider-thumb-green::-moz-range-track {
+  background: #bbf7d0;
+  height: 8px;
+  border-radius: 4px;
+}

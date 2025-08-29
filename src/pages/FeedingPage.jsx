@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { FaDrumstickBite, FaSync, FaExclamationTriangle, FaCalendarAlt, FaSyringe, FaClock, FaDog } from 'react-icons/fa';
 import { GiCow, GiChicken, GiSheep } from 'react-icons/gi';
+import AIChatbot from '../components/AIChatbot';
 
 const farmApiBase = 'http://localhost:8080/api/farms';
 
@@ -50,6 +51,7 @@ export default function FeedingPage(){
   const [error,setError]=useState('');
   const [alert,setAlert]=useState(null);
   const [refreshing,setRefreshing]=useState(false);
+  const [chatbotOpen, setChatbotOpen] = useState(false);
 
   const didMarkThisSession = useRef(false); // simple guard for front-only marking
 
@@ -451,6 +453,34 @@ useEffect(() => {
           </div>
         </div>
       </div>
+
+      {/* AI Chatbot */}
+      <AIChatbot 
+        isOpen={chatbotOpen} 
+        onToggle={() => setChatbotOpen(!chatbotOpen)}
+        context="feeding_management"
+        pageData={{
+          animals: animals,
+          totalAnimals: animals.length,
+          feedingSchedule: schedule,
+          nextFeeding: nextFeeding,
+          totalIntake: totalIntake,
+          fullnessStats: {
+            hungry: animals.filter(a => getFullnessPct(a) < 40).length,
+            moderate: animals.filter(a => getFullnessPct(a) >= 40 && getFullnessPct(a) < 80).length,
+            satisfied: animals.filter(a => getFullnessPct(a) >= 80).length
+          },
+          tankLevels: {
+            cow: cowTank,
+            dog: dogTank,
+            chicken: chickenTank,
+            sheep: sheepTank
+          },
+          usageTotals: usageTotals,
+          nextEvent: nextEvent ? `${nextEvent.label} @ ${nextEvent.time}` : null,
+          farmId: farmId
+        }}
+      />
     </div>
   );
 }

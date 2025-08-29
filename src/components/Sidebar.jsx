@@ -23,7 +23,6 @@ const menuItems = [
   { icon: <MdOutlineTipsAndUpdates size={30} />, label: 'Care Tips', path: '/care-tips' },
   { icon: <MdOutlineNotificationsActive size={30} />, label: 'Notifications', path: '/notifications' },
   { icon: <FaRobot size={30} />, label: 'AI farms Detection', path: '/ai-farms' },
-  { icon: <FaRobot size={30} />, label: 'AI Plants Detection', path: '/ai-plants' },
 ];
 
 export default function Sidebar({ setIsLoggedIn, username, email, isAdmin }) {

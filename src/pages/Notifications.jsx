@@ -25,7 +25,8 @@ const Notifications = () => {
   const [filterType, setFilterType] = useState('all');
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-
+  const farmId = localStorage.getItem('farmId');
+  console.log('Using farmId:', farmId);
   // Notification type configs with icons and colors
   const notificationTypes = {
     animal: {
@@ -62,19 +63,14 @@ const Notifications = () => {
     try {
       setLoading(true);
       setError(null);
-      
-      let url = 'http://localhost:8080/api/notifications';
-      
-      if (showUnreadOnly && filterType !== 'all') {
-        url = `http://localhost:8080/api/notifications/type/${filterType}/unread`;
-      } else if (showUnreadOnly) {
-        url = 'http://localhost:8080/api/notifications/unread';
-      } else if (filterType !== 'all') {
-        url = `http://localhost:8080/api/notifications/type/${filterType}`;
-      }
+      const baseUrl = `http://localhost:8080/api/farms/${farmId}/notifications`;
+      const params = {};
+      if (filterType !== 'all') params.type = filterType;
+      if (showUnreadOnly) params.unreadOnly = true;
 
       const token = localStorage.getItem('token');
-      const response = await axios.get(url, {
+      const response = await axios.get(baseUrl, {
+        params,
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -94,8 +90,8 @@ const Notifications = () => {
     try {
       setRefreshing(true);
       const token = localStorage.getItem('token');
-      
-      await axios.post('http://localhost:8080/api/notifications/generate-dynamic', {}, {
+
+      await axios.post(`http://localhost:8080/api/farms/${farmId}/notifications/generate-dynamic`, {}, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -115,7 +111,7 @@ const Notifications = () => {
     try {
       const token = localStorage.getItem('token');
       
-      await axios.put(`http://localhost:8080/api/notifications/${id}/read`, {}, {
+      await axios.put(`http://localhost:8080/api/farms/${farmId}/notifications/${id}/read`, {}, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -139,7 +135,7 @@ const Notifications = () => {
     try {
       const token = localStorage.getItem('token');
       
-      await axios.put('http://localhost:8080/api/notifications/read-all', {}, {
+      await axios.put(`http://localhost:8080/api/farms/${farmId}/notifications/read-all`, {}, {
         headers: {
           Authorization: `Bearer ${token}`
         }

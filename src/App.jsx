@@ -31,8 +31,13 @@ import ManageDiseases from './pages/ManageDiseases';
 import ManageCareTips from './pages/ManageCareTips';
 import ManageProducts from './pages/ManageProducts';
 import Notifications from './pages/Notifications';
+import AIPlantDetection from './pages/AIPlantDetection';
+import AIAnimalDetection from './pages/AIAnimalDetection';
+import AIDetectionHub from './pages/AIDetectionHub';
+import PlotlyTest from './pages/PlotlyTest';
 import axios from 'axios';
 import CreateFarm from './pages/CreateFarm';
+import GlobalChatbot from './components/GlobalChatbot';
 
 function AppLayout({ isLoggedIn, userDetails, isAdmin, setIsLoggedIn, fetchUserDetails }) {
   const location = useLocation();
@@ -126,6 +131,26 @@ function AppLayout({ isLoggedIn, userDetails, isAdmin, setIsLoggedIn, fetchUserD
               element={isLoggedIn ? <Notifications /> : <Login setIsLoggedIn={setIsLoggedIn} fetchUserDetails={fetchUserDetails} />}
             />
             <Route
+              path="/ai-plant-detection"
+              element={isLoggedIn ? <AIPlantDetection /> : <Login setIsLoggedIn={setIsLoggedIn} fetchUserDetails={fetchUserDetails} />}
+            />
+            <Route
+              path="/ai-animal-detection"
+              element={isLoggedIn ? <AIAnimalDetection /> : <Login setIsLoggedIn={setIsLoggedIn} fetchUserDetails={fetchUserDetails} />}
+            />
+            <Route
+              path="/ai-detection"
+              element={isLoggedIn ? <AIDetectionHub /> : <Login setIsLoggedIn={setIsLoggedIn} fetchUserDetails={fetchUserDetails} />}
+            />
+            <Route
+              path="/ai-farms"
+              element={<Navigate to="/ai-detection" replace />}
+            />
+            <Route
+              path="/plotly-test"
+              element={<PlotlyTest />}
+            />
+            <Route
               path="/admin"
               element={
                 isLoggedIn && isAdmin ? (
@@ -168,6 +193,9 @@ function AppLayout({ isLoggedIn, userDetails, isAdmin, setIsLoggedIn, fetchUserD
         </Routes>
         {!isLoggedIn && <Footer />}
       </div>
+      
+      {/* Global AI Chatbot - appears on all pages when logged in */}
+      {isLoggedIn && <GlobalChatbot />}
     </div>
   );
 }

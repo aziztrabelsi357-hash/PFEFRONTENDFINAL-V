@@ -92,7 +92,7 @@ const Login = ({ setIsLoggedIn, fetchUserDetails }) => {
       }
 
       toast.success('Login successful!');
-      navigate(farmId ? '/farm' : '/create-farm');
+      navigate(farmId ? '/dashboard' : '/create-farm');
     } catch (err) {
       localStorage.removeItem('token');
       setIsLoggedIn(false);
