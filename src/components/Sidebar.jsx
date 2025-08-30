@@ -4,7 +4,7 @@ import { GoUpload } from "react-icons/go";
 import { FaProductHunt, FaUserCircle, FaHistory, FaDog, FaDisease, FaBell, FaRobot, FaDrumstickBite } from "react-icons/fa";
 import { IoLogOut } from "react-icons/io5";
 import { MdOutlineTipsAndUpdates } from "react-icons/md";
-import { FaShieldAlt } from "react-icons/fa"; 
+// removed admin shield icon (no Admin route)
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
@@ -86,17 +86,7 @@ export default function Sidebar({ setIsLoggedIn, username, email, isAdmin }) {
               </li>
             )
           ))}
-          {isAdmin && (
-            <li className="px-3 py-2 my-2 hover:bg-gray-200 hover:text-black rounded-md duration-300 cursor-pointer flex gap-2 items-center relative group">
-              <Link to="/admin" className="flex gap-2 items-center">
-                <div className="text-green-600"><FaShieldAlt size={30} /></div>
-                <p className={`font-bold ${!open && 'w-0 translate-x-24'} duration-500 overflow-hidden`}>Admin Dashboard</p>
-              </Link>
-              <p className={`font-bold ${open && 'hidden'} absolute left-32 shadow-md rounded-md w-0 p-0 text-black bg-white duration-100 overflow-hidden group-hover:w-fit group-hover:p-2 group-hover:left-16 group-hover:bg-gray-200 group-hover:text-black`}>
-                Admin Dashboard
-              </p>
-            </li>
-          )}
+          {/* Admin Dashboard removed */}
           <li className="px-3 py-2 my-2 hover:bg-black hover:text-white rounded-md duration-300 cursor-pointer flex gap-2 items-center relative group">
             <div onClick={handleSignOut} className="flex gap-2 items-center justify-center">
               <div className="text-green-600 flex-shrink-0"><IoLogOut size={30} /></div>

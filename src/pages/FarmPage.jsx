@@ -9,7 +9,6 @@ import image3 from '../assets/images/vaccination.png';
 
 const FarmPage = () => {
   const [careTips, setCareTips] = useState([]);
-  const [diseases, setDiseases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -31,11 +30,8 @@ const FarmPage = () => {
         setLoading(true);
         setError(null);
 
-        const careTipsResponse = await axios.get('http://localhost:8080/api/care-tips');
-        setCareTips(careTipsResponse.data.slice(0, 3));
-
-        const diseasesResponse = await axios.get('http://localhost:8080/diseases');
-        setDiseases(diseasesResponse.data.slice(0, 3));
+  const careTipsResponse = await axios.get('http://localhost:8080/api/care-tips');
+  setCareTips(careTipsResponse.data.slice(0, 3));
       } catch (err) {
         setError('Failed to load data. Please try again later.');
         console.error(err);
@@ -57,16 +53,6 @@ const FarmPage = () => {
         link: `/care-tips/${careTip.id}`,
       })),
       allArticlesLink: '/care-tips',
-    },
-    {
-      title: 'Diseases',
-      articles: diseases.map((disease, index) => ({
-        id: disease.id,
-        title: disease.name,
-        image: diseaseImages[index % diseaseImages.length],
-        link: `/diseases/${disease.id}`,
-      })),
-      allArticlesLink: '/diseases',
     },
   ];
 

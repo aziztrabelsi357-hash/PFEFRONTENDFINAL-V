@@ -43,11 +43,11 @@ const services = [
 ];
 const steps = [
   { title: "Sign Up", details: "Create an account to start managing your farm.", route: "/register" },
-  { title: "Add farms & Plants", details: "Register your farms and crops to begin tracking their health and growth.", route: "/upload" },
-  { title: "Upload Images or Data", details: "Upload photos or enter details for AI-powered disease detection and farm analysis.", route: "/upload" },
+  { title: "Add farms & Plants", details: "Register your farms and crops to begin tracking their health and growth.", route: "/create-farm" },
+  { title: "Upload Images or Data", details: "Upload photos or enter details for AI-powered disease detection and farm analysis.", route: "/ai-detection" },
   { title: "Manage Food & Watering", details: "Plan and monitor feeding and watering schedules for all farm resources.", route: "/products" },
-  { title: "Get Instant Insights", details: "Receive AI-generated reports and tips for improving your farm’s productivity.", route: "/history" },
-  { title: "Track Farm History", details: "Monitor your farm’s progress over time with detailed records and analytics.", route: "/history" }
+  { title: "Get Instant Insights", details: "Receive AI-generated reports and tips for improving your farm’s productivity.", route: "/ai-detection" },
+  { title: "Track Farm History", details: "Monitor your farm’s progress over time with detailed records and analytics.", route: "/dashboard" }
 ];
 
 const ServicesSection = () => {
@@ -147,7 +147,7 @@ const ServicesSection = () => {
               <div className="flex flex-col items-center mb-4">
                 {/* Logo/Icon for the step */}
                 {selectedStep.title.includes('Sign Up') && <FaUserShield size={40} className="text-green-600 mb-2" />}
-                {selectedStep.title.includes('Add farms') && <Fadog size={40} className="text-green-600 mb-2" />}
+                {selectedStep.title.includes('Add farms') && <FaDog size={40} className="text-green-600 mb-2" />}
                 {selectedStep.title.includes('Plants') && !selectedStep.title.includes('Add farms') && <FaLeaf size={40} className="text-green-600 mb-2" />}
                 {selectedStep.title.includes('Upload') && <FaClipboardList size={40} className="text-green-600 mb-2" />}
                 {selectedStep.title.includes('Food') && <FaAppleAlt size={40} className="text-green-600 mb-2" />}

@@ -14,22 +14,16 @@ import Login from './pages/Login';
 import SignOut from './components/SignOut';
 import Register from './pages/Register';
 import ResetPassword from './pages/ResetPassword';
-import DiseaseArticlePage from './pages/DiseaseArticlePage';
 import FarmPage from './pages/FarmPage';
 import Products from './pages/Products';
 import CareTipArticlePage from './pages/CareTipArticlePage';
 import CareTips from './pages/CareTips';
-import Diseases from './pages/Diseases';
-import Upload from './pages/Upload';
-import History from './pages/History';
+// removed: Diseases, DiseaseArticlePage, Upload, History
 import MyAnimals from './pages/AnimalPage';
 import MyPlantes from './pages/PlantPage';
 import Dashboard from './pages/Dashboard';
 import Sidebar from './components/Sidebar';
-import AdminDashboard from './pages/AdminDashboard';
-import ManageDiseases from './pages/ManageDiseases';
-import ManageCareTips from './pages/ManageCareTips';
-import ManageProducts from './pages/ManageProducts';
+// removed: AdminDashboard, ManageDiseases, ManageCareTips, ManageProducts
 import Notifications from './pages/Notifications';
 import AIPlantDetection from './pages/AIPlantDetection';
 import AIAnimalDetection from './pages/AIAnimalDetection';
@@ -110,22 +104,7 @@ function AppLayout({ isLoggedIn, userDetails, isAdmin, setIsLoggedIn, fetchUserD
             path="/care-tips/:id"
             element={isLoggedIn ? <CareTipArticlePage /> : <Login setIsLoggedIn={setIsLoggedIn} fetchUserDetails={fetchUserDetails} />}
           />
-            <Route
-              path="/diseases"
-              element={isLoggedIn ? <Diseases /> : <Login setIsLoggedIn={setIsLoggedIn} fetchUserDetails={fetchUserDetails} />}
-            />
-            <Route
-              path="/diseases/:id"
-              element={isLoggedIn ? <DiseaseArticlePage /> : <Login setIsLoggedIn={setIsLoggedIn} fetchUserDetails={fetchUserDetails} />}
-            />
-            <Route
-              path="/upload"
-              element={isLoggedIn ? <Upload /> : <Login setIsLoggedIn={setIsLoggedIn} fetchUserDetails={fetchUserDetails} />}
-            />
-            <Route
-              path="/history"
-              element={isLoggedIn ? <History /> : <Login setIsLoggedIn={setIsLoggedIn} fetchUserDetails={fetchUserDetails} />}
-            />
+            {/* removed routes: /diseases, /diseases/:id, /upload, /history */}
             <Route
               path="/notifications"
               element={isLoggedIn ? <Notifications /> : <Login setIsLoggedIn={setIsLoggedIn} fetchUserDetails={fetchUserDetails} />}
@@ -150,46 +129,7 @@ function AppLayout({ isLoggedIn, userDetails, isAdmin, setIsLoggedIn, fetchUserD
               path="/plotly-test"
               element={<PlotlyTest />}
             />
-            <Route
-              path="/admin"
-              element={
-                isLoggedIn && isAdmin ? (
-                  <AdminDashboard />
-                ) : (
-                  <Navigate to="/login" />
-                )
-              }
-            />
-            <Route
-              path="/admin/diseases"
-              element={
-                isLoggedIn && isAdmin ? (
-                  <ManageDiseases />
-                ) : (
-                  <Navigate to="/login" />
-                )
-              }
-            />
-            <Route
-              path="/admin/care-tips"
-              element={
-                isLoggedIn && isAdmin ? (
-                  <ManageCareTips />
-                ) : (
-                  <Navigate to="/login" />
-                )
-              }
-            />
-            <Route
-              path="/admin/products"
-              element={
-                isLoggedIn && isAdmin ? (
-                  <ManageProducts />
-                ) : (
-                  <Navigate to="/login" />
-                )
-              }
-            />
+            {/* removed admin routes: /admin, /admin/diseases, /admin/care-tips, /admin/products */}
         </Routes>
         {!isLoggedIn && <Footer />}
       </div>

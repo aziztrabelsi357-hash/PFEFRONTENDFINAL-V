@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { FaDrumstickBite, FaSync, FaExclamationTriangle, FaCalendarAlt, FaSyringe, FaClock, FaDog } from 'react-icons/fa';
 import { GiCow, GiChicken, GiSheep } from 'react-icons/gi';
-import AIChatbot from '../components/AIChatbot';
 
 const farmApiBase = 'http://localhost:8080/api/farms';
 
@@ -51,17 +50,35 @@ export default function FeedingPage(){
   const [error,setError]=useState('');
   const [alert,setAlert]=useState(null);
   const [refreshing,setRefreshing]=useState(false);
-  const [chatbotOpen, setChatbotOpen] = useState(false);
 
   const didMarkThisSession = useRef(false); // simple guard for front-only marking
 
   const FEEDING_TIMES = ['07:00','12:00','18:00'];
-  const DEFAULT_INTAKE = { cow: 25, dog: 1.5, sheep: 4, chicken: 0.2 };
+  const DEFAULT_INTAKE = { cow: 25, dog: 10.5, sheep: 14, chicken: 5.2 };
 
   function getRecommended(a){ const species = (a?.species||'').toLowerCase(); return Number(a?.recommendedIntakeLiters) || DEFAULT_INTAKE[species] || 1; }
   function getCurrent(a){ return Number(a?.todayIntakeLiters) || 0; }
   function hoursSinceLastIntake(a){ try{ const t = a?.intakeUpdatedAt; if(!t) return 24; const h = (Date.now() - new Date(t).getTime())/36e5; return isFinite(h)? h:24; }catch(e){ return 24; } }
   function hungerMultiplier(a){ const rec = getRecommended(a); const cur = getCurrent(a); if(rec<=0) return 1; const hungerRemaining = Math.max(0, 1 - (cur / rec)); const hours = hoursSinceLastIntake(a); let timeBonus = 0; if(hours > 12) timeBonus = 0.5; else if(hours > 6) timeBonus = 0.2; const m = Math.min(2, 1 + hungerRemaining * 0.8 + timeBonus); return m; }
+
+  // Check if tank has enough food for the animal
+  function canFeedAnimal(animal) {
+    const species = (animal?.species||'').toLowerCase();
+    const requiredAmount = getRecommended(animal);
+    
+    switch(species) {
+      case 'cow':
+        return cowTank.level >= requiredAmount;
+      case 'dog':
+        return dogTank.level >= requiredAmount;
+      case 'chicken':
+        return chickenTank.level >= requiredAmount;
+      case 'sheep':
+        return sheepTank.level >= requiredAmount;
+      default:
+        return false;
+    }
+  }
 
   useEffect(()=>{ 
     const t=localStorage.getItem('token');
@@ -181,9 +198,9 @@ export default function FeedingPage(){
 */
 
 const DECAY_RATES_PER_HOUR = {
-  cow: 2,      // cow loses 2% fullness per hour
-  dog: 6,      // dog loses 6% per hour (more active)
-  sheep: 3,    // sheep 3% per hour
+  cow: 20,      // cow loses 2% fullness per hour
+  dog: 60,      // dog loses 6% per hour (more active)
+  sheep: 30,    // sheep 3% per hour
   chicken: 10, // chicken 10% per hour (small body, fast depletion)
   // default fallback used if species unknown
 };
@@ -225,8 +242,8 @@ useEffect(() => {
   };
     tick();
 
-  // Run tick every 60s
-  const intervalId = setInterval(tick, 360000 * 1000);
+  // Run tick every 36s
+  const intervalId = setInterval(tick, 36* 1000);
 
   // Cleanup
   return () => clearInterval(intervalId);
@@ -247,20 +264,62 @@ useEffect(() => {
 
   // ---------- feed raw & feed all (kept simple) ----------
   const handleFeedRaw = async(animalId, liters=1)=>{
-    if(!farmId||!token) return null;
-    try{
-      const url = `${farmApiBase}/${farmId}/animals/${animalId}/feed?liters=${liters}`;
-      console.log('[Feeding] handleFeedRaw POST', { url, liters });
-      const r = await axios.post(url, {}, {headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'}});
-      const farm = r.data;
-      console.log('[Feeding] handleFeedRaw response', { status: r.status, sample: farm && { animals: Array.isArray(farm.animals)?farm.animals.length:null } });
-      if(farm) {
-        if(farm.animals) applyFarmData(farm);
-        else await fetchCore();
+  if(!farmId||!token) return null;
+  try{
+    // 1. First, get the animal's species
+    console.log('[Feeding] Getting species for animal', animalId);
+    const speciesRes = await axios.get(`http://localhost:8080/api/animals/${animalId}/species`, {
+      headers: {Authorization: `Bearer ${token}`}
+    });
+    const species = speciesRes.data;
+    console.log('[Feeding] Animal species:', species);
+
+    // 2. Feed the animal
+    const url = `${farmApiBase}/${farmId}/animals/${animalId}/feed?liters=${liters}`;
+    console.log('[Feeding] handleFeedRaw POST', { url, liters });
+    const r = await axios.post(url, {}, {headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'}});
+    const farm = r.data;
+    console.log('[Feeding] handleFeedRaw response', { status: r.status, sample: farm && { animals: Array.isArray(farm.animals)?farm.animals.length:null } });
+    
+    // 3. Decrease tank level based on species
+    if (species) {
+      const speciesLower = species.toLowerCase();
+      let consumeAmount = liters;
+      
+      // Special case: dogs always consume 60L regardless of actual feed amount
+      // Special case: override tank consumption per species
+      if (speciesLower === 'dog') {
+        consumeAmount = 60;
+      } else if (speciesLower === 'cow') {
+        consumeAmount = 25;
+      } else if (speciesLower === 'sheep') {
+        consumeAmount = 14;
+      } else if (speciesLower === 'chicken') {
+        consumeAmount = 5.2;
       }
-      return farm;
-    }catch(e){ console.error('[Feeding] Feed failed', e); setAlert('Feeding failed'); return null; }
-  };
+      
+      console.log('[Feeding] Consuming from tank:', { species: speciesLower, amount: consumeAmount });
+      
+      try {
+        await axios.post(`${farmApiBase}/${farmId}/${speciesLower}-tank/refill?amount=${-consumeAmount}`, {}, {
+          headers: {Authorization: `Bearer ${token}`}
+        });
+        console.log(`[Feeding] Successfully consumed ${consumeAmount}L from ${speciesLower} tank`);
+        
+        // Refresh tank levels
+        await fetchTanks({Authorization: `Bearer ${token}`});
+      } catch (tankError) {
+        console.warn('[Feeding] Tank consumption failed:', tankError);
+      }
+    }
+
+    if(farm) {
+      if(farm.animals) applyFarmData(farm);
+      else await fetchCore();
+    }
+    return farm;
+  }catch(e){ console.error('[Feeding] Feed failed', e); setAlert('Feeding failed'); return null; }
+};
 
   const handleFeedAll = async(totalLiters)=>{
     if(!farmId||!token||!animals.length) return;
@@ -300,6 +359,7 @@ useEffect(() => {
         fullness: normalizeFullnessValue(sa.fullness)
       }));
       setAnimals(fa);
+      handleFeedRaw();
     }
     try{
       if(farmData.cowFoodTank){ const lvl = Number(farmData.cowFoodTank.quantity||farmData.cowFoodTank.level||0); setCowTank({level: lvl, low: lvl < 50}); }
@@ -315,10 +375,17 @@ useEffect(() => {
     const id = animalOrId && typeof animalOrId === 'object' ? animalOrId.id : animalOrId;
     if(!id) return;
     try{
+      const speciesResponse = await axios.get(`/api/animals/${id}/species`);
+      console.log('uahsuhauhsuhasuhsuuashusahuh adminSetFullness POST',  speciesResponse );
+      const species = speciesResponse.data;
+      console.log('[Feeding] adminSetFullness POST', { species, id });
       const url = `${farmApiBase}/animals/${id}/set-fullness`;
+      handleFeedRaw(id);
       console.log('[Feeding] adminSetFullness POST', { url });
       const r = await axios.post(url, {}, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } });
       console.log('[Feeding] adminSetFullness response', r.status, r.data);
+      console.log(r.data);
+      
       setAnimals(prev => prev.map(a => a.id === id ? ({ ...a, todayIntakeLiters: Number(a.recommendedIntakeLiters) || getRecommended(a), recommendedIntakeLiters: Number(a.recommendedIntakeLiters) || getRecommended(a), intakeUpdatedAt: new Date().toISOString(), fullness: 100 }) : a));
       await fetchCore();
       setAlert('Set animal to full (debug)');
@@ -378,7 +445,6 @@ useEffect(() => {
       <div className='grid gap-4 grid-cols-2 md:grid-cols-3 xl:grid-cols-9'>
         <OverviewCard icon={<FaClock className='text-blue-500'/>} title='Next Feed' value={nextFeeding? fmt(nextFeeding): '—'} />
         <OverviewCard icon={<FaClock className='text-amber-500'/>} title='Next Event' value={nextEvent? `${nextEvent.label} @ ${nextEvent.time}`: '—'} />
-        <OverviewCard icon={<FaDrumstickBite className='text-orange-500'/>} title='Total Fed' value={`${totalIntake} L`} />
         <OverviewCard icon={<FaCalendarAlt className='text-cyan-500'/>} title='Animals' value={`${animals.length}`} />
         <OverviewCard icon={<FaSyringe className='text-green-500'/>} title='Vaccinations' value={`${schedule.filter(s=>s.type==='vaccination').length}`} />
         <TankMiniCard icon={<GiCow className='text-yellow-600'/>} title='Cow Tank' value={`${Math.round(cowTank.level||0)} L`} />
@@ -418,6 +484,8 @@ useEffect(() => {
             {animals.length? animals.map(a=>{
               const pct = getFullnessPct(a);
               const severity = pct<40? 'bg-red-100 text-red-600': pct<80? 'bg-yellow-100 text-yellow-600':'bg-green-100 text-green-600';
+              const canFeed = canFeedAnimal(a);
+              const requiredAmount = getRecommended(a);
               return (
                 <div key={a.id} className='border rounded-lg p-3 flex flex-col gap-2'>
                   <div className='flex justify-between items-center'>
@@ -429,7 +497,18 @@ useEffect(() => {
                   <div className='text-[10px] text-gray-500'>DB fullness raw: {String(a.fullness ?? 'n/a')}</div>
                   <div className='flex items-center justify-between'>
                     <div />
-                    <button onClick={() => adminSetFullness(a)} className='text-blue-500 hover:underline'>Set Full</button>
+                    <button 
+                      onClick={() => adminSetFullness(a)} 
+                      disabled={!canFeed}
+                      className={`text-sm px-2 py-1 rounded ${
+                        canFeed 
+                          ? 'text-blue-500 hover:underline cursor-pointer' 
+                          : 'text-gray-400 cursor-not-allowed'
+                      }`}
+                      title={canFeed ? 'Set animal to full' : `Not enough food in tank (need ${requiredAmount}L)`}
+                    >
+                      Set Full
+                    </button>
                   </div>
                 </div>
               );
@@ -453,34 +532,6 @@ useEffect(() => {
           </div>
         </div>
       </div>
-
-      {/* AI Chatbot */}
-      <AIChatbot 
-        isOpen={chatbotOpen} 
-        onToggle={() => setChatbotOpen(!chatbotOpen)}
-        context="feeding_management"
-        pageData={{
-          animals: animals,
-          totalAnimals: animals.length,
-          feedingSchedule: schedule,
-          nextFeeding: nextFeeding,
-          totalIntake: totalIntake,
-          fullnessStats: {
-            hungry: animals.filter(a => getFullnessPct(a) < 40).length,
-            moderate: animals.filter(a => getFullnessPct(a) >= 40 && getFullnessPct(a) < 80).length,
-            satisfied: animals.filter(a => getFullnessPct(a) >= 80).length
-          },
-          tankLevels: {
-            cow: cowTank,
-            dog: dogTank,
-            chicken: chickenTank,
-            sheep: sheepTank
-          },
-          usageTotals: usageTotals,
-          nextEvent: nextEvent ? `${nextEvent.label} @ ${nextEvent.time}` : null,
-          farmId: farmId
-        }}
-      />
     </div>
   );
 }

@@ -298,12 +298,11 @@ const GlobalChatbot = () => {
   // Generate contextual response based on page and data
   const generateContextualResponse = (question) => {
     const currentPage = location.pathname;
-    const pageContext = {
+  const pageContext = {
       '/dashboard': 'Dashboard Analytics',
       '/my-animals': 'Animal Management',
       '/my-plants': 'Plant Management', 
       '/products': 'Product Inventory',
-      '/diseases': 'Disease Information',
       '/care-tips': 'Care Tips',
       '/feeding': 'Animal Feeding',
       '/watering': 'Plant Watering',
